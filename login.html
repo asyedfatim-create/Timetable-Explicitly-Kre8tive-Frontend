@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - IBIT Timetable Automation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+/* Enhanced login styles */
+.login-enhanced {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.login-container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  max-width: 1200px;
+  width: 100%;
+  min-height: 600px;
+  display: flex;
+}
+
+.login-left-enhanced {
+  flex: 1;
+  background: linear-gradient(135deg, #1251af 0%, #1e40af 100%);
+  padding: 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-left-enhanced::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  animation: float 20s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(-30px, -30px) rotate(180deg); }
+}
+
+.login-right-enhanced {
+  flex: 1;
+  padding: 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-logo-enhanced {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-logo-enhanced img {
+  width: 120px;
+  height: 120px;
+  border-radius: 15px;
+  margin-bottom: 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.login-title-enhanced {
+  font-family: 'Syne', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #1251af, #1e40af);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.login-subtitle-enhanced {
+  color: #64748b;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+}
+
+.role-selection-enhanced {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.role-card-enhanced {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 15px;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.role-card-enhanced:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.role-card-enhanced.selected {
+  border-color: #1251af;
+  background: linear-gradient(135deg, rgba(18, 81, 175, 0.05), rgba(30, 64, 175, 0.05));
+}
+
+.role-card-enhanced.selected::before {
+  content: '✓';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #1251af;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.role-icon-enhanced {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.role-name-enhanced {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.25rem;
+}
+
+.role-desc-enhanced {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.form-enhanced {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group-enhanced {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label-enhanced {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.form-input-enhanced {
+  padding: 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.form-input-enhanced:focus {
+  outline: none;
+  border-color: #1251af;
+  box-shadow: 0 0 0 3px rgba(18, 81, 175, 0.1);
+}
+
+.login-btn-enhanced {
+  background: linear-gradient(135deg, #1251af, #1e40af);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+}
+
+.login-btn-enhanced:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(18, 81, 175, 0.3);
+}
+
+.login-btn-enhanced:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-footer-enhanced {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: #64748b;
+}
+
+.login-footer-enhanced a {
+  color: #1251af;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.login-footer-enhanced a:hover {
+  text-decoration: underline;
+}
+
+.error-message {
+  background: rgba(220, 38, 38, 0.1);
+  border: 2px solid rgba(220, 38, 38, 0.3);
+  color: #dc2626;
+  padding: 1rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  text-align: center;
+  display: none;
+}
+
+.loading-spinner {
+  display: none;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #1251af;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .login-container {
+    flex-direction: column;
+    max-width: 100%;
+  }
+  
+  .login-left-enhanced {
+    padding: 2rem;
+  }
+  
+  .role-selection-enhanced {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="login-enhanced">
+  <div class="login-container">
+    <div class="login-left-enhanced">
+      <div class="login-logo-enhanced">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFNDwvU1e1kz_Li_iAW3-gUznLjqii9gq6ug&s" alt="IBIT Logo">
+        <h1 style="font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; margin-bottom: 1rem;">
+          IBIT Timetable Portal
+        </h1>
+        <p style="opacity: 0.9; font-size: 1.1rem;">
+          Your gateway to seamless schedule management
+        </p>
+      </div>
+    </div>
+    
+    <div class="login-right-enhanced">
+      <div class="login-title-enhanced">Welcome Back</div>
+      <div class="login-subtitle-enhanced">Select your role and sign in to continue</div>
+      
+      <div class="error-message" id="errorMessage">
+        Invalid credentials. Please try again.
+      </div>
+      
+      <form id="loginForm" class="form-enhanced">
+        <div class="role-selection-enhanced">
+          <div class="role-card-enhanced" data-role="admin" onclick="selectRole('admin')">
+            <div class="role-icon-enhanced">🛡️</div>
+            <div class="role-name-enhanced">Admin</div>
+            <div class="role-desc-enhanced">Full system access</div>
+          </div>
+          <div class="role-card-enhanced" data-role="teacher" onclick="selectRole('teacher')">
+            <div class="role-icon-enhanced">👨‍🏫</div>
+            <div class="role-name-enhanced">Teacher</div>
+            <div class="role-desc-enhanced">Manage schedule</div>
+          </div>
+          <div class="role-card-enhanced" data-role="student" onclick="selectRole('student')">
+            <div class="role-icon-enhanced">🎓</div>
+            <div class="role-name-enhanced">Student</div>
+            <div class="role-desc-enhanced">View timetable</div>
+          </div>
+        </div>
+        
+        <div class="form-group-enhanced">
+          <label class="form-label-enhanced" for="email">Email Address</label>
+          <input type="email" id="email" class="form-input-enhanced" placeholder="Enter your email" required>
+        </div>
+        
+        <div class="form-group-enhanced">
+          <label class="form-label-enhanced" for="password">Password</label>
+          <input type="password" id="password" class="form-input-enhanced" placeholder="Enter your password" required>
+        </div>
+        
+        <button type="submit" class="login-btn-enhanced" id="loginBtn" disabled>
+          Sign In →
+        </button>
+        
+        <div class="loading-spinner" id="loadingSpinner"></div>
+      </form>
+      
+      <div class="login-footer-enhanced">
+        Forgot password? <a href="#" onclick="handlePasswordReset()">Reset here</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Dynamic login system
+let selectedRole = null;
+
+function selectRole(role) {
+  // Remove previous selection
+  document.querySelectorAll('.role-card-enhanced').forEach(card => {
+    card.classList.remove('selected');
+  });
+  
+  // Add selection to clicked role
+  document.querySelector(`[data-role="${role}"]`).classList.add('selected');
+  selectedRole = role;
+  
+  // Update button text
+  const loginBtn = document.getElementById('loginBtn');
+  const roleText = role.charAt(0).toUpperCase() + role.slice(1);
+  loginBtn.textContent = `Sign In as ${roleText} →`;
+  loginBtn.disabled = false;
+  
+  // Hide error message
+  document.getElementById('errorMessage').style.display = 'none';
+}
+
+// Handle form submission
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  if (!selectedRole) {
+    showError('Please select a role');
+    return;
+  }
+  
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  
+  if (!email || !password) {
+    showError('Please fill in all fields');
+    return;
+  }
+  
+  // Show loading
+  const loginBtn = document.getElementById('loginBtn');
+  const spinner = document.getElementById('loadingSpinner');
+  loginBtn.disabled = true;
+  spinner.style.display = 'block';
+  
+  try {
+    // Simulate API call (replace with actual authentication)
+    await authenticateUser(email, password, selectedRole);
+  } catch (error) {
+    showError('Invalid credentials. Please try again.');
+    loginBtn.disabled = false;
+    spinner.style.display = 'none';
+  }
+});
+
+async function authenticateUser(email, password, role) {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  // Mock authentication (replace with real API call)
+  const mockUsers = {
+    admin: { email: 'admin@ibit.edu.pk', password: 'admin123' },
+    teacher: { email: 'teacher@ibit.edu.pk', password: 'teacher123' },
+    student: { email: 'student@ibit.edu.pk', password: 'student123' }
+  };
+  
+  const validUser = mockUsers[role];
+  
+  if (validUser && email === validUser.email && password === validUser.password) {
+    // Store user session
+    sessionStorage.setItem('userRole', role);
+    sessionStorage.setItem('userEmail', email);
+    sessionStorage.setItem('isLoggedIn', 'true');
+    
+    // Redirect to role-specific portal
+    const rolePages = {
+      admin: 'admin.html',
+      teacher: 'teacher.html',
+      student: 'student.html'
+    };
+    
+    window.location.href = rolePages[role];
+  } else {
+    throw new Error('Invalid credentials');
+  }
+}
+
+function showError(message) {
+  const errorElement = document.getElementById('errorMessage');
+  errorElement.textContent = message;
+  errorElement.style.display = 'block';
+}
+
+function handlePasswordReset() {
+  alert('Password reset link will be sent to your email address.');
+  // Implement password reset functionality
+}
+
+// Check if user is already logged in
+window.addEventListener('load', function() {
+  const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+  const userRole = sessionStorage.getItem('userRole');
+  
+  if (isLoggedIn === 'true' && userRole) {
+    const rolePages = {
+      admin: 'admin.html',
+      teacher: 'teacher.html',
+      student: 'student.html'
+    };
+    window.location.href = rolePages[userRole];
+  }
+});
+
+// Add input validation
+document.getElementById('email').addEventListener('input', function(e) {
+  const email = e.target.value;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  
+  if (email && !emailRegex.test(email)) {
+    e.target.setCustomValidity('Please enter a valid email address');
+  } else {
+    e.target.setCustomValidity('');
+  }
+});
+
+// Add password strength indicator
+document.getElementById('password').addEventListener('input', function(e) {
+  const password = e.target.value;
+  const strength = calculatePasswordStrength(password);
+  
+  // You can add visual feedback for password strength here
+  console.log('Password strength:', strength);
+});
+
+function calculatePasswordStrength(password) {
+  let strength = 0;
+  
+  if (password.length >= 8) strength++;
+  if (password.match(/[a-z]+/)) strength++;
+  if (password.match(/[A-Z]+/)) strength++;
+  if (password.match(/[0-9]+/)) strength++;
+  if (password.match(/[$@#&!]+/)) strength++;
+  
+  return strength;
+}
+</script>
+
+</body>
+</html>

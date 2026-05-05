@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Portal - IBIT Timetable Automation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="ek-watermark">Explicitly Kre8tive · F23BA</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- STUDENT TOP NAV -->
+<header class="showcase-header" id="studentNav">
+  <div class="brand" style="color:#059669;">Student Portal · IBIT TAS</div>
+  <nav class="page-nav">
+    <button class="nav-btn active" onclick="show('dash',this)">📊 Dashboard</button>
+    <button class="nav-btn" onclick="show('tt',this)">📅 My Timetable</button>
+    <button class="nav-btn" onclick="show('notif',this)">🔔 Notifications</button>
+    <button class="nav-btn" onclick="show('assignments',this)">📝 Assignments</button>
+    <button class="nav-btn" onclick="show('exams',this)">📋 Exam Schedule</button>
+    <button class="nav-btn" onclick="logout()" style="background:rgba(220,38,38,.15);border-color:rgba(220,38,38,.5);">🚪 Logout</button>
+  </nav>
+</header>
+
+<div class="canvas">
+
+<!-- STUDENT DASHBOARD -->
+<div id="dash" class="page active">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo"><div class="logo-gem-sm"></div>IBIT <span>TAS</span></div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">My Portal</div>
+        <div class="sidebar-item active" onclick="sidebarNav(this,'dash')"><span class="sidebar-icon">⚡</span> Dashboard</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'tt')"><span class="sidebar-icon">📅</span> My Timetable</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'notif')"><span class="sidebar-icon">🔔</span> Notifications <span class="sidebar-badge" id="studentNotifCount">3</span></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Academics</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'assignments')"><span class="sidebar-icon">📝</span> Assignments</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'exams')"><span class="sidebar-icon">📋</span> Exam Schedule</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'grades')"><span class="sidebar-icon">📊</span> My Grades</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Tools</div>
+        <div class="sidebar-item" onclick="exportMyTimetable()"><span class="sidebar-icon">📄</span> Export Timetable</div>
+        <div class="sidebar-item" onclick="syncCalendar()"><span class="sidebar-icon">📆</span> Sync Calendar</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Account</div>
+        <div class="sidebar-item" onclick="logout()">
+          <span class="sidebar-icon">🚪</span> Logout
+        </div>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="main-header">
+        <div>
+          <div class="section-label" id="currentDate">Loading...</div>
+          <h1 class="page-title">Student <span>Dashboard</span></h1>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost" onclick="exportMyTimetable()">📄 Export PDF</button>
+          <button class="btn btn-primary" onclick="goPage('tt')">📅 View Timetable</button>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card gold">
+          <div class="stat-label">Classes Today</div>
+          <div class="stat-value" style="color:var(--gold-lt)" id="studentTodayClasses">4</div>
+          <div class="stat-sub">Mon · 8:00 – 11:00</div>
+        </div>
+        <div class="stat-card teal">
+          <div class="stat-label">Upcoming Tests</div>
+          <div class="stat-value" style="color:var(--teal)" id="upcomingTests">1</div>
+          <div class="stat-sub"><span class="stat-trend trend-up">Dec 14</span> · OS Midterm</div>
+        </div>
+        <div class="stat-card coral">
+          <div class="stat-label">Attendance This Week</div>
+          <div class="stat-value" style="color:var(--coral)" id="weeklyAttendance">87%</div>
+          <div class="stat-sub"><span class="stat-trend trend-up">↑ 2%</span> vs last week</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-label">Notifications</div>
+          <div class="stat-value" style="color:var(--amber)" id="studentNotifications">3</div>
+          <div class="stat-sub">2 unread · 1 announcement</div>
+        </div>
+      </div>
+      <div class="dash-grid">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Weekly Class Load</div>
+              <div class="card-sub">Scheduled sessions per day</div>
+            </div>
+            <span class="pill pill-gold">This Week</span>
+          </div>
+          <div class="mini-chart" id="studentWeeklyChart">
+            <!-- Chart will be populated dynamically -->
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Notifications</div>
+          </div>
+          <div class="activity-list" id="studentNotifications">
+            <!-- Notifications will be populated dynamically -->
+          </div>
+        </div>
+      </div>
+      <div class="bottom-grid">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Today's Schedule</div>
+            <span class="pill pill-teal">Live</span>
+          </div>
+          <table class="mini-tt" id="studentTodaySchedule">
+            <!-- Today's schedule will be populated dynamically -->
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Upcoming Deadlines</div>
+            <span class="pill pill-coral" id="deadlineCount">2 upcoming</span>
+          </div>
+          <div class="activity-list" id="upcomingDeadlines">
+            <!-- Deadlines will be populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- STUDENT TIMETABLE PAGE -->
+<div id="tt" class="page">
+  <div class="tt-page">
+    <div class="main-header">
+      <div>
+        <div class="section-label" id="studentSection">Section F23-Afternoon-A</div>
+        <h1 class="page-title">My <span>Timetable</span></h1>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost" onclick="exportMyTimetable()">📄 Export PDF</button>
+        <button class="btn btn-teal" onclick="syncCalendar()">📆 Sync to Calendar</button>
+      </div>
+    </div>
+
+    <div class="tt-toolbar">
+      <div class="tt-title-section">
+        <div class="week-nav">
+          <button class="week-btn" onclick="previousWeek()">‹</button>
+          <div class="week-label" id="weekLabel">Week of Apr 14–18, 2026</div>
+          <button class="week-btn" onclick="nextWeek()">›</button>
+        </div>
+        <div class="view-toggle-group" id="ttViewToggle">
+          <button class="view-toggle-btn active" id="btnWeekly" onclick="switchTTView('weekly')">📅 Weekly</button>
+          <button class="view-toggle-btn" id="btnMonthly" onclick="switchTTView('monthly')">🗓 Monthly</button>
+        </div>
+      </div>
+      <div class="tt-filters">
+        <select class="filter-select" id="studentSemesterFilter" onchange="filterTimetable()">
+          <option value="current">Current Semester</option>
+          <option value="all">All Semesters</option>
+        </select>
+        <select class="filter-select" id="studentCourseFilter" onchange="filterTimetable()">
+          <option value="all">All Courses</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:.5rem;">
+        <span class="pill pill-gold" id="classCount">14 Classes</span>
+        <span class="pill pill-coral" id="cancelledCount">2 Cancelled</span>
+        <span class="pill pill-amber" id="makeupCount">1 Makeup</span>
+      </div>
+    </div>
+
+    <!-- WEEKLY VIEW -->
+    <div id="weeklyTT" class="tt-grid-wrap">
+      <div class="tt-grid">
+        <div class="tt-head">
+          <div class="tt-head-cell">Time</div>
+          <div class="tt-head-cell">Monday<br><small style="font-size:.7rem;font-weight:400;color:var(--text3)" id="monDate">Apr 14</small></div>
+          <div class="tt-head-cell">Tuesday<br><small style="font-size:.7rem;font-weight:400;color:var(--text3)" id="tueDate">Apr 15</small></div>
+          <div class="tt-head-cell today">Wednesday<br><small style="font-size:.7rem;font-weight:400" id="wedDate">Apr 16 · Today</small></div>
+          <div class="tt-head-cell">Thursday<br><small style="font-size:.7rem;font-weight:400;color:var(--text3)" id="thuDate">Apr 17</small></div>
+          <div class="tt-head-cell">Friday<br><small style="font-size:.7rem;font-weight:400;color:var(--text3)" id="friDate">Apr 18</small></div>
+        </div>
+        <div class="tt-body" id="studentTimetableBody">
+          <!-- Timetable will be populated dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- MONTHLY VIEW -->
+    <div id="monthlyTT" class="monthly-grid-wrapper" style="display:none;">
+      <table class="monthly-grid" id="monthlyGrid">
+        <thead>
+          <tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th></tr>
+        </thead>
+        <tbody id="monthlyBody">
+          <!-- Monthly calendar will be populated dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="legend" id="studentLegend">
+      <!-- Legend will be populated dynamically -->
+    </div>
+  </div>
+</div>
+
+<!-- ASSIGNMENTS PAGE -->
+<div id="assignments" class="page">
+  <div class="assignments-page">
+    <div class="main-header">
+      <div>
+        <div class="section-label">Academics</div>
+        <h1 class="page-title">My <span>Assignments</span></h1>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost" onclick="exportAssignments()">📄 Export List</button>
+      </div>
+    </div>
+    
+    <div class="assignments-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Pending Assignments</div>
+          <span class="pill pill-coral" id="pendingAssignCount">4 pending</span>
+        </div>
+        <div class="assignment-list" id="pendingAssignments">
+          <!-- Pending assignments will be populated dynamically -->
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Submitted Assignments</div>
+          <span class="pill pill-teal" id="submittedAssignCount">8 submitted</span>
+        </div>
+        <div class="assignment-list" id="submittedAssignments">
+          <!-- Submitted assignments will be populated dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EXAMS PAGE -->
+<div id="exams" class="page">
+  <div class="exams-page">
+    <div class="main-header">
+      <div>
+        <div class="section-label">Academics</div>
+        <h1 class="page-title">Exam <span>Schedule</span></h1>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost" onclick="exportExamSchedule()">📄 Export Schedule</button>
+        <button class="btn btn-primary" onclick="addExamToCalendar()">📆 Add to Calendar</button>
+      </div>
+    </div>
+    
+    <div class="exam-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Upcoming Exams</div>
+          <span class="pill pill-amber" id="upcomingExamCount">3 upcoming</span>
+        </div>
+        <div class="exam-list" id="upcomingExams">
+          <!-- Upcoming exams will be populated dynamically -->
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Past Exams</div>
+          <span class="pill pill-gold" id="pastExamCount">2 completed</span>
+        </div>
+        <div class="exam-list" id="pastExams">
+          <!-- Past exams will be populated dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATIONS PAGE -->
+<div id="notif" class="page">
+  <div class="notif-page">
+    <div class="main-header" style="margin-bottom:1.5rem">
+      <div>
+        <div class="section-label">System Alerts</div>
+        <h1 class="page-title">My <span>Notifications</span></h1>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-ghost" onclick="markAllRead()">Mark All Read</button>
+      </div>
+    </div>
+    
+    <div class="notif-layout">
+      <div class="notif-sidebar">
+        <div class="notif-summary">
+          <div class="ns-title">Summary</div>
+          <div class="ns-stat">
+            <div class="ns-label">Unread</div>
+            <div class="ns-count" style="color:var(--gold-lt)" id="unreadCount">3</div>
+          </div>
+          <div class="ns-stat">
+            <div class="ns-label">Today</div>
+            <div class="ns-count" id="todayCount">5</div>
+          </div>
+          <div class="ns-stat">
+            <div class="ns-label">This Week</div>
+            <div class="ns-count" id="weekCount">12</div>
+          </div>
+        </div>
+        <div class="notif-filter">
+          <div class="nf-header">Filter by Type</div>
+          <div class="nf-btn active" onclick="filterNotifications('all')">All Notifications <span class="nf-count">3</span></div>
+          <div class="nf-btn" onclick="filterNotifications('class')">Class Changes <span class="nf-count">1</span></div>
+          <div class="nf-btn" onclick="filterNotifications('assignment')">Assignments <span class="nf-count">1</span></div>
+          <div class="nf-btn" onclick="filterNotifications('exam')">Exams <span class="nf-count">1</span></div>
+        </div>
+      </div>
+      
+      <div>
+        <div class="notif-feed" id="studentNotificationFeed">
+          <!-- Notifications will be populated dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- Scripts -->
+<script src="js/api.js"></script>
+<script src="js/api-integration.js"></script>
+<script src="js/app-state.js"></script>
+<script src="js/data.js"></script>
+<script src="js/helpers.js"></script>
+<script src="js/toast.js"></script>
+<script src="js/export-pdf.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/navigation.js"></script>
+<script src="js/timetable-view.js"></script>
+<script src="js/student-init.js"></script>
+
+</body>
+</html>

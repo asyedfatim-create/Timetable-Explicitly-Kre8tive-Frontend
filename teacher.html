@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Portal - IBIT Timetable Automation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="ek-watermark">Explicitly Kre8tive · F23BA</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Request modal -->
+<div class="modal-overlay" id="requestModal">
+  <div class="modal-box">
+    <div class="modal-icon">📨</div>
+    <div class="modal-title">Submit Request</div>
+    <div class="modal-sub" id="requestModalSub">Your request will be sent to admin for approval.</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeRequestModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmRequest()">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEACHER TOP NAV -->
+<header class="showcase-header" id="teacherNav">
+  <div class="brand" style="color:#0891b2;">Teacher Portal · IBIT TAS</div>
+  <nav class="page-nav">
+    <button class="nav-btn active" onclick="show('dash',this)">📊 Dashboard</button>
+    <button class="nav-btn" onclick="show('tt',this)">📅 My Timetable</button>
+    <button class="nav-btn" onclick="show('req',this)">📨 My Requests</button>
+    <button class="nav-btn" onclick="show('notif',this)">🔔 Notifications</button>
+    <button class="nav-btn" onclick="show('schedule',this)">🗓️ Schedule Request</button>
+    <button class="nav-btn" onclick="logout()" style="background:rgba(220,38,38,.15);border-color:rgba(220,38,38,.5);">🚪 Logout</button>
+  </nav>
+</header>
+
+<div class="canvas">
+
+<!-- TEACHER DASHBOARD -->
+<div id="dash" class="page active">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo"><div class="logo-gem-sm"></div>IBIT <span>TAS</span></div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">My Portal</div>
+        <div class="sidebar-item active" onclick="sidebarNav(this,'dash')"><span class="sidebar-icon">⚡</span> Dashboard</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'tt')"><span class="sidebar-icon">📅</span> My Timetable</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'req')"><span class="sidebar-icon">📨</span> My Requests <span class="sidebar-badge" id="myReqCount">2</span></div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'notif')"><span class="sidebar-icon">🔔</span> Notifications <span class="sidebar-badge" id="myNotifCount">4</span></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Actions</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'schedule')"><span class="sidebar-icon">🗓️</span> Schedule Request</div>
+        <div class="sidebar-item" onclick="exportMyPDF()"><span class="sidebar-icon">📄</span> Export My Timetable</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Account</div>
+        <div class="sidebar-item" onclick="logout()">
+          <span class="sidebar-icon">🚪</span> Logout
+        </div>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="main-header">
+        <div>
+          <div class="section-label" id="currentDate">Loading...</div>
+          <h1 class="page-title">Teacher <span>Dashboard</span></h1>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost" onclick="exportMyPDF()">📄 Export PDF</button>
+          <button class="btn btn-primary" onclick="goPage('req')">📨 My Requests</button>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card gold">
+          <div class="stat-label">Classes Today</div>
+          <div class="stat-value" style="color:var(--gold-lt)" id="todayClasses">3</div>
+          <div class="stat-sub">08:00 – 11:00 · 3 slots</div>
+        </div>
+        <div class="stat-card teal">
+          <div class="stat-label">Classes This Week</div>
+          <div class="stat-value" style="color:var(--teal)" id="weekClasses">16</div>
+          <div class="stat-sub"><span class="stat-trend trend-up">94%</span> conducted</div>
+        </div>
+        <div class="stat-card coral">
+          <div class="stat-label">Cancellations</div>
+          <div class="stat-value" style="color:var(--coral)" id="myCancellations">1</div>
+          <div class="stat-sub"><span class="stat-trend trend-dn">OS Lec · Wed</span></div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-label">Pending Requests</div>
+          <div class="stat-value" style="color:var(--amber)" id="myPending">2</div>
+          <div class="stat-sub">1 makeup · 1 reschedule</div>
+        </div>
+      </div>
+      <div class="dash-grid">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">My Weekly Schedule</div>
+              <div class="card-sub">Scheduled classes per day</div>
+            </div>
+            <span class="pill pill-gold">This Week</span>
+          </div>
+          <div class="mini-chart" id="teacherWeeklyChart">
+            <!-- Chart will be populated dynamically -->
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Activity</div>
+          </div>
+          <div class="activity-list" id="teacherRecentActivity">
+            <!-- Activity will be populated dynamically -->
+          </div>
+        </div>
+      </div>
+      <div class="bottom-grid">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Today's Schedule</div>
+            <span class="pill pill-teal">Live</span>
+          </div>
+          <table class="mini-tt" id="teacherTodaySchedule">
+            <!-- Today's schedule will be populated dynamically -->
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">My Requests</div>
+            <span class="pill pill-coral" id="myRequestCount">2 pending</span>
+          </div>
+          <div class="req-list" id="myRequestList">
+            <!-- Teacher's requests will be populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- SCHEDULE REQUEST PAGE -->
+<div id="schedule" class="page">
+  <div class="req-page">
+    <div class="main-header" style="margin-bottom:1.5rem">
+      <div>
+        <div class="section-label">Teacher Portal</div>
+        <h1 class="page-title">Schedule <span>Request</span></h1>
+      </div>
+    </div>
+    <div class="req-layout">
+      <div class="form-card">
+        <div class="form-card-header" style="background-color:#65d1eb">
+          <div class="form-card-title">New Request</div>
+          <div class="form-card-sub">Fill in the details. The system will check availability automatically.</div>
+        </div>
+        <div class="form-card-body">
+          <div class="req-type-tabs">
+            <div class="req-tab active" onclick="switchTab(this,'tab-makeup')">🔄 Makeup / Reschedule</div>
+            <div class="req-tab" onclick="switchTab(this,'tab-merge')">🔗 Section Merge</div>
+            <div class="req-tab" onclick="switchTab(this,'tab-cancel')">❌ Cancel Lecture</div>
+          </div>
+          <div id="tab-makeup" class="tab-panel active">
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label">Course</label>
+                <select class="field-input" id="teacherCourseSelect">
+                  <option value="">-- Select Course --</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label class="field-label">Section</label>
+                <select class="field-input" id="teacherSectionSelect">
+                  <option value="">-- Select Section --</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label">Original Date</label>
+                <input type="date" class="field-input" id="originalDate">
+              </div>
+              <div class="form-field">
+                <label class="field-label">Original Time Slot</label>
+                <select class="field-input" id="originalSlot">
+                  <option value="">-- Select Slot --</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label">Preferred New Date</label>
+                <input type="date" class="field-input" id="newDate">
+              </div>
+              <div class="form-field">
+                <label class="field-label">Preferred New Time</label>
+                <select class="field-input" id="newSlot">
+                  <option value="">-- Select Slot --</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-field">
+              <label class="field-label">Preferred Room (optional)</label>
+              <select class="field-input" id="preferredRoom">
+                <option value="">-- Select Room --</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="field-label">Reason for Request</label>
+              <textarea class="field-textarea" id="requestReason" placeholder="Please provide a reason for your request..."></textarea>
+            </div>
+            <div class="avail-check" id="availabilityCheck">✓ System will check availability automatically</div>
+            <button class="submit-btn" onclick="submitTeacherRequest()">Submit Makeup Request →</button>
+          </div>
+          <div id="tab-merge" class="tab-panel">
+            <div style="background:var(--gold-dim);border:1.5px solid rgba(29,78,216,.2);border-radius:10px;padding:.85rem 1rem;margin-bottom:1.5rem;font-size:.82rem;color:var(--gold-lt)">
+              🔗 A section merge combines two sections into one joint class. Both sections will be notified upon approval.
+            </div>
+            <div class="form-field">
+              <label class="field-label">Course to Merge</label>
+              <select class="field-input" id="mergeCourse">
+                <option value="">-- Select Course --</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label">Section A</label>
+                <select class="field-input" id="mergeSectionA">
+                  <option value="">-- Select Section A --</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label class="field-label">Section B</label>
+                <select class="field-input" id="mergeSectionB">
+                  <option value="">-- Select Section B --</option>
+                </select>
+              </div>
+            </div>
+            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:.85rem 1rem;margin-bottom:1.25rem;font-size:.8rem;color:var(--text2)">
+              <div style="font-weight:600;color:var(--text);margin-bottom:.35rem">Combined student count</div>
+              <span id="combinedStudentCount">Select sections</span>
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label">Preferred Date</label>
+                <input type="date" class="field-input" id="mergeDate">
+              </div>
+              <div class="form-field">
+                <label class="field-label">Preferred Time</label>
+                <select class="field-input" id="mergeTime">
+                  <option value="">-- Select Slot --</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-field">
+              <label class="field-label">Preferred Venue</label>
+              <select class="field-input" id="mergeVenue">
+                <option value="">-- Select Room --</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="field-label">Reason</label>
+              <textarea class="field-textarea" id="mergeReason" placeholder="Reason for section merge..."></textarea>
+            </div>
+            <div class="avail-check" id="mergeAvailabilityCheck">✓ System will check venue availability</div>
+            <button class="submit-btn" onclick="submitMergeRequest()">Submit Section Merge Request →</button>
+          </div>
+          <div id="tab-cancel" class="tab-panel">
+            <div style="background:var(--coral-dim);border:1.5px solid rgba(220,38,38,.2);border-radius:10px;padding:.85rem 1rem;margin-bottom:1.5rem;font-size:.82rem;color:var(--coral)">
+              ❌ Cancellations are logged for admin records. Students will be notified instantly.
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label">Course</label>
+                <select class="field-input" id="cancelCourse">
+                  <option value="">-- Select Course --</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label class="field-label">Section</label>
+                <select class="field-input" id="cancelSection">
+                  <option value="">-- Select Section --</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label class="field-label">Date to Cancel</label>
+                <input type="date" class="field-input" id="cancelDate">
+              </div>
+              <div class="form-field">
+                <label class="field-label">Time Slot</label>
+                <select class="field-input" id="cancelSlot">
+                  <option value="">-- Select Slot --</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-field">
+              <label class="field-label">Reason</label>
+              <select class="field-input" id="cancelReason">
+                <option value="">-- Select Reason --</option>
+                <option>Personal Emergency</option>
+                <option>Sick Leave</option>
+                <option>Conference / Event</option>
+                <option>Department Meeting</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="field-label">Will you arrange a makeup class?</label>
+              <select class="field-input" id="makeupPlan">
+                <option>Yes — I will submit a makeup request</option>
+                <option>No — admin to decide</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="field-label">Additional Notes (optional)</label>
+              <textarea class="field-textarea" id="cancelNotes" placeholder="Any additional info for admin..."></textarea>
+            </div>
+            <button class="submit-btn" style="background:var(--coral)" onclick="submitCancelRequest()">Submit Cancellation →</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="workflow-card">
+          <div class="workflow-header">
+            <div class="workflow-title">Request Workflow</div>
+          </div>
+          <div class="workflow-body">
+            <div class="workflow-step">
+              <div class="step-circle sc-done">1</div>
+              <div class="step-info">
+                <div class="step-name">Submit Request</div>
+                <div class="step-desc">You fill the form</div>
+              </div>
+            </div>
+            <div class="workflow-step">
+              <div class="step-circle sc-active">2</div>
+              <div class="step-info">
+                <div class="step-name">System Checks</div>
+                <div class="step-desc">Auto-verifies availability</div>
+              </div>
+            </div>
+            <div class="workflow-step">
+              <div class="step-circle sc-pending">3</div>
+              <div class="step-info">
+                <div class="step-name">Admin Review</div>
+                <div class="step-desc">Admin approves/rejects</div>
+              </div>
+            </div>
+            <div class="workflow-step">
+              <div class="step-circle sc-pending">4</div>
+              <div class="step-info">
+                <div class="step-name">Timetable Updated</div>
+                <div class="step-desc">Changes reflect instantly</div>
+              </div>
+            </div>
+            <div class="workflow-step">
+              <div class="step-circle sc-pending">5</div>
+              <div class="step-info">
+                <div class="step-name">Students Notified</div>
+                <div class="step-desc">Push alerts sent</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="workflow-card">
+          <div class="workflow-header" style="display:flex;justify-content:space-between;align-items:center">
+            <div class="workflow-title">My Request History</div>
+            <span class="pill pill-gold" id="historyCount">3 total</span>
+          </div>
+          <div class="workflow-body" style="padding-top:.5rem" id="requestHistory">
+            <!-- Request history will be populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Include other page sections (tt, req, notif) here -->
+
+</div>
+
+<!-- Scripts -->
+<script src="js/api.js"></script>
+<script src="js/api-integration.js"></script>
+<script src="js/app-state.js"></script>
+<script src="js/data.js"></script>
+<script src="js/helpers.js"></script>
+<script src="js/toast.js"></script>
+<script src="js/export-pdf.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/requests.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/navigation.js"></script>
+<script src="js/timetable-view.js"></script>
+<script src="js/teacher-request.js"></script>
+<script src="js/teacher-init.js"></script>
+
+</body>
+</html>

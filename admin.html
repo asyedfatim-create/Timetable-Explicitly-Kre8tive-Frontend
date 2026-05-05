@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Portal - IBIT Timetable Automation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div class="ek-watermark">Explicitly Kre8tive · F23BA</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Publish modal -->
+<div class="modal-overlay" id="publishModal">
+  <div class="modal-box">
+    <div class="modal-icon">🚀</div>
+    <div class="modal-title">Publish Timetable?</div>
+    <div class="modal-sub" id="publishModalSub">This will make the timetable live for all students and teachers in the selected section. Notifications will be sent automatically.</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closePublishModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmPublish()">Yes, Publish</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN TOP NAV -->
+<header class="showcase-header" id="adminNav">
+  <div class="brand" style="color:#1251af;">Admin Portal · IBIT TAS</div>
+  <nav class="page-nav">
+    <button class="nav-btn active" onclick="show('dash',this)">📊 Dashboard</button>
+    <button class="nav-btn" onclick="show('tt',this)">📅 Timetable</button>
+    <button class="nav-btn" onclick="show('clash',this)">⚠️ Clash Detection</button>
+    <button class="nav-btn" onclick="show('req',this)">📨 Teacher Requests</button>
+    <button class="nav-btn" onclick="show('notif',this)">🔔 Notifications</button>
+    <button class="nav-btn" onclick="show('analytics',this)">📈 Analytics</button>
+    <button class="nav-btn" onclick="show('makett',this)" style="background:rgba(29,78,216,.25);border-color:rgba(255,255,255,.5);">🗓️ Build Timetable</button>
+    <button class="nav-btn" onclick="show('teachers',this)">👥 Teachers</button>
+    <button class="nav-btn" onclick="show('rooms',this)">🏫 Rooms</button>
+    <button class="nav-btn" onclick="show('courses',this)">📚 Courses</button>
+    <button class="nav-btn" onclick="show('sections',this)">👥 Sections</button>
+    <button class="nav-btn" onclick="logout()" style="background:rgba(220,38,38,.15);border-color:rgba(220,38,38,.5);">🚪 Logout</button>
+  </nav>
+</header>
+
+<div class="canvas">
+
+<!-- ADMIN DASHBOARD -->
+<div id="dash" class="page active">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-logo"><div class="logo-gem-sm"></div>IBIT <span>TAS</span></div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Overview</div>
+        <div class="sidebar-item active" onclick="sidebarNav(this,'dash')"><span class="sidebar-icon">⚡</span> Dashboard</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'tt')"><span class="sidebar-icon">📅</span> Timetable</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'clash')"><span class="sidebar-icon">⚠️</span> Clash Monitor <span class="sidebar-badge" id="clashCount">2</span></div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'req')"><span class="sidebar-icon">📨</span> Requests <span class="sidebar-badge" id="reqCount">5</span></div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'notif')"><span class="sidebar-icon">🔔</span> Notifications <span class="sidebar-badge" id="notifCount">8</span></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Management</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'makett')"><span class="sidebar-icon">🗓️</span> Build Timetable</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'teachers')"><span class="sidebar-icon">👨‍🏫</span> Teachers</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'rooms')"><span class="sidebar-icon">🏫</span> Rooms</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'courses')"><span class="sidebar-icon">📚</span> Courses</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'sections')"><span class="sidebar-icon">👥</span> Sections</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Reports</div>
+        <div class="sidebar-item" onclick="sidebarNav(this,'analytics')"><span class="sidebar-icon">📊</span> Analytics</div>
+        <div class="sidebar-item" onclick="exportPDF()"><span class="sidebar-icon">📄</span> Export PDF</div>
+        <div class="sidebar-item" onclick="comingSoon('Settings')"><span class="sidebar-icon">⚙️</span> Settings</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Account</div>
+        <div class="sidebar-item" onclick="logout()">
+          <span class="sidebar-icon">🚪</span> Logout
+        </div>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="main-header">
+        <div>
+          <div class="section-label" id="currentDate">Loading...</div>
+          <h1 class="page-title">Admin <span>Dashboard</span></h1>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost" onclick="exportPDF()">📄 Export PDF</button>
+          <button class="btn btn-primary" onclick="goPage('makett')">+ Add Class</button>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card gold">
+          <div class="stat-label">Total Slots This Week</div>
+          <div class="stat-value" style="color:var(--gold-lt)" id="totalSlots">142</div>
+          <div class="stat-sub"><span class="stat-trend trend-up">↑ 4 new</span> vs last week</div>
+        </div>
+        <div class="stat-card teal">
+          <div class="stat-label">Classes Conducted</div>
+          <div class="stat-value" style="color:var(--teal)" id="conductedClasses">118</div>
+          <div class="stat-sub"><span class="stat-trend trend-up">83%</span> completion rate</div>
+        </div>
+        <div class="stat-card coral">
+          <div class="stat-label">Cancellations</div>
+          <div class="stat-value" style="color:var(--coral)" id="cancellations">11</div>
+          <div class="stat-sub"><span class="stat-trend trend-dn">↑ 3</span> from last week</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-label">Pending Requests</div>
+          <div class="stat-value" style="color:var(--amber)" id="pendingRequests">5</div>
+          <div class="stat-sub">2 urgent · 3 standard</div>
+        </div>
+      </div>
+      <div class="dash-grid">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Weekly Class Activity</div>
+              <div class="card-sub">Scheduled vs Conducted vs Cancelled</div>
+            </div>
+            <span class="pill pill-gold">This Week</span>
+          </div>
+          <div class="mini-chart" id="weeklyChart">
+            <!-- Chart will be populated dynamically -->
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Activity</div>
+          </div>
+          <div class="activity-list" id="recentActivity">
+            <!-- Activity will be populated dynamically -->
+          </div>
+        </div>
+      </div>
+      <div class="bottom-grid">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Today's Timetable Preview</div>
+            <span class="pill pill-teal" id="ttPreviewPill">Live</span>
+          </div>
+          <div style="display:flex;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap;align-items:center">
+            <select id="dashPreviewSection" style="font-size:.75rem;padding:.3rem .6rem;border:1.5px solid #E2E8F0;border-radius:8px;color:var(--text2);background:#fff;cursor:pointer;outline:none" onchange="renderDashTTPreview()">
+              <option value="all">All Sections</option>
+            </select>
+            <span id="dashPreviewStatus" style="font-size:.72rem;color:var(--text3);font-style:italic">Loading timetable data...</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="mini-tt" id="dashTTPreviewTable">
+              <!-- Timetable preview will be populated dynamically -->
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Pending Approvals</div>
+            <span class="pill pill-coral" id="pendingCount">5 waiting</span>
+          </div>
+          <div class="req-list" id="pendingApprovals">
+            <!-- Pending requests will be populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Include other page sections (tt, clash, req, etc.) here -->
+<!-- These would be similar to the original but adapted for admin role -->
+
+</div>
+
+<!-- Scripts -->
+<script src="js/api.js"></script>
+<script src="js/api-integration.js"></script>
+<script src="js/app-state.js"></script>
+<script src="js/data.js"></script>
+<script src="js/helpers.js"></script>
+<script src="js/toast.js"></script>
+<script src="js/export-pdf.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/requests.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/navigation.js"></script>
+<script src="js/timetable-view.js"></script>
+<script src="js/clash-detection.js"></script>
+<script src="js/teacher-request.js"></script>
+<script src="js/builder.js"></script>
+<script src="js/manage-common.js"></script>
+<script src="js/manage-teachers.js"></script>
+<script src="js/manage-rooms.js"></script>
+<script src="js/manage-courses.js"></script>
+<script src="js/manage-sections.js"></script>
+<script src="js/dash-preview.js"></script>
+<script src="js/admin-init.js"></script>
+
+</body>
+</html>
