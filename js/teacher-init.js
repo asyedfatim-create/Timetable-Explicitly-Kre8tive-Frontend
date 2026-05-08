@@ -1,459 +1,267 @@
 /* ═══════════════════════════════════════════════════════════════
-   IBIT TAS — teacher-init.js
-   Teacher-specific initialization and functionality
-   ═══════════════════════════════════════════════════════════════ */
+   IBIT TAS — teacher-init.js  [FIXED]
+   Teacher dashboard — pulls REAL data from API.
+═══════════════════════════════════════════════════════════════ */
 
-// Teacher-specific data and state
 const TEACHER_STATE = {
-  profile: {
-    name: 'Dr. Sara',
-    email: 'teacher@ibit.edu.pk',
-    department: 'Computer Science',
-    courses: ['Internet Programming', 'Data Structures']
-  },
-  stats: {
-    todayClasses: 3,
-    weekClasses: 16,
-    cancellations: 1,
-    pendingRequests: 2
-  },
+  profile: {},
+  stats: { todayClasses:0, weekClasses:0, cancellations:0, pendingRequests:0 },
   schedule: [],
   requests: [],
-  notifications: []
+  notifications: [],
 };
 
-// Initialize teacher dashboard
-function initializeTeacherDashboard() {
-  console.log('Initializing Teacher Dashboard...');
-  
-  // Check authentication
-  if (!checkTeacherAuth()) {
-    window.location.href = 'login.html';
+/* ════════════════════════════════════════════
+   MAIN LOADER — called by navigation._onPageEnter
+════════════════════════════════════════════ */
+async function loadTeacherDashboardData(){
+  try {
+    /* Load all shared data (courses, sections, timetable) */
+    await loadAllData();
+
+    /* Teacher profile */
+    let profile = {};
+    try {
+      const pRes = await API.get('/auth/me');
+      profile = pRes.data || pRes || {};
+    } catch(e){}
+    TEACHER_STATE.profile = profile;
+
+    /* Fetch requests made by this teacher */
+    let myRequests = [];
+    try {
+      const rRes = await API.get('/requests');
+      myRequests = (rRes.data || []).filter(r =>
+        !r.teacherName || r.teacherName === profile.name ||
+        !r.teacherId   || r.teacherId   === profile.id
+      );
+    } catch(e){}
+    TEACHER_STATE.requests = myRequests;
+
+    /* Derive stats from real timetable data */
+    _computeTeacherStats(profile, myRequests);
+
+    /* Render UI sections */
+    _renderTeacherStatCards();
+    _renderTeacherTodaySchedule(profile);
+    _renderTeacherRequestList(myRequests);
+    _renderTeacherWeeklyChart(profile);
+    _renderTeacherNotifications(myRequests);
+
+    /* Badge updates */
+    _updateTeacherBadges(myRequests);
+
+    /* Update profile header elements */
+    safeSet('teacherName',  profile.name  || 'Teacher');
+    safeSet('teacherDept',  profile.dept  || profile.department || '');
+    safeSet('teacherEmail', profile.email || '');
+
+    /* Set current date */
+    const dateEl = document.getElementById('currentDate');
+    if(dateEl){
+      dateEl.textContent = new Date().toLocaleDateString('en-US',
+        { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    }
+
+  } catch(err){
+    console.error('loadTeacherDashboardData failed:', err);
+  }
+}
+
+function _computeTeacherStats(profile, myRequests){
+  const myName = profile.name || '';
+  const today  = new Date();
+  const todayDow = today.getDay(); /* 0=Sun … 6=Sat */
+  const todayIdx = (todayDow >= 1 && todayDow <= 5) ? todayDow - 1 : -1;
+
+  /* Count slots assigned to this teacher */
+  let todayCount = 0, weekCount = 0;
+  Object.entries(timetableData || {}).forEach(([key, entry]) => {
+    if(entry.teacher !== myName) return;
+    weekCount++;
+    const dayIdx = parseInt(key.split('-')[0]);
+    if(dayIdx === todayIdx) todayCount++;
+  });
+
+  const pendingCount = myRequests.filter(r => r.status === 'pending').length;
+  const cancelCount  = myRequests.filter(r => r.type   === 'cancel').length;
+
+  TEACHER_STATE.stats = {
+    todayClasses:    todayCount,
+    weekClasses:     weekCount,
+    cancellations:   cancelCount,
+    pendingRequests: pendingCount,
+  };
+}
+
+function _renderTeacherStatCards(){
+  const s = TEACHER_STATE.stats;
+  safeSet('todayClasses',  s.todayClasses);
+  safeSet('weekClasses',   s.weekClasses);
+  safeSet('myCancellations', s.cancellations);
+  safeSet('myPending',     s.pendingRequests);
+}
+
+function _renderTeacherTodaySchedule(profile){
+  const container = document.getElementById('teacherTodaySchedule');
+  if(!container) return;
+
+  const myName  = profile.name || '';
+  const today   = new Date();
+  const todayDow= today.getDay();
+  const todayIdx= (todayDow >= 1 && todayDow <= 5) ? todayDow - 1 : -1;
+
+  if(todayIdx === -1){
+    container.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1rem;color:var(--text3)">No classes on weekends</td></tr>';
     return;
   }
-  
-  // Set current date
-  setCurrentDate();
-  
-  // Load teacher data
-  loadTeacherData();
-  
-  // Initialize charts
-  initializeTeacherCharts();
-  
-  // Start real-time updates
-  startTeacherUpdates();
-  
-  console.log('Teacher Dashboard initialized successfully');
-}
 
-// Check teacher authentication
-function checkTeacherAuth() {
-  const isLoggedIn = sessionStorage.getItem('isLoggedIn');
-  const userRole = sessionStorage.getItem('userRole');
-  
-  return isLoggedIn === 'true' && userRole === 'teacher';
-}
+  /* Gather all timetable entries for today */
+  const todaySlots = [];
+  Object.entries(timetableData || {}).forEach(([key, entry]) => {
+    if(entry.teacher !== myName) return;
+    const [dayIdx, slotIdx, secIdx] = key.split('-').map(Number);
+    if(dayIdx === todayIdx){
+      todaySlots.push({ slotIdx, entry, secIdx });
+    }
+  });
+  todaySlots.sort((a,b) => a.slotIdx - b.slotIdx);
 
-// Set current date
-function setCurrentDate() {
-  const dateElement = document.getElementById('currentDate');
-  if (dateElement) {
-    const now = new Date();
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    dateElement.textContent = now.toLocaleDateString('en-US', options);
+  if(todaySlots.length === 0){
+    container.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1rem;color:var(--text3);font-size:.85rem">No classes scheduled for today</td></tr>';
+    return;
   }
+
+  const header = '<tr><th>Time</th><th>Course</th><th>Room</th><th>Section</th></tr>';
+  const rows = todaySlots.map(({ slotIdx, entry }) => `
+    <tr>
+      <td style="font-weight:600;color:var(--gold-lt);font-size:.82rem">${SLOT_LABELS[slotIdx] || ''}</td>
+      <td>
+        <div style="font-weight:600;color:var(--text)">${entry.name}</div>
+        <div style="font-size:.72rem;color:var(--text3)">${entry.code}</div>
+      </td>
+      <td style="color:var(--text2);font-size:.82rem">${entry.room}</td>
+      <td style="color:var(--text2);font-size:.82rem">${entry.section}</td>
+    </tr>`).join('');
+
+  container.innerHTML = header + rows;
+  TEACHER_STATE.schedule = todaySlots;
 }
 
-// Load teacher data
-async function loadTeacherData() {
-  try {
-    // Show loading state
-    showLoadingState();
-    
-    // Load teacher profile from API
-    const profile = await APIService.getTeacherProfile();
-    TEACHER_STATE.profile = { ...TEACHER_STATE.profile, ...profile };
-    
-    // Load statistics from API (calculate from profile data)
-    updateTeacherStats();
-    
-    // Load recent activity from API
-    await loadTeacherRecentActivity();
-    
-    // Load teacher's requests from API
-    await loadTeacherRequests();
-    
-    // Load notifications from API
-    await loadTeacherNotifications();
-    
-    // Load today's schedule from API
-    await loadTodaySchedule();
-    
-    // Update badges
-    updateTeacherBadges();
-    
-    // Load request history
-    loadRequestHistory();
-    
-    hideLoadingState();
-    
-  } catch (error) {
-    console.error('Error loading teacher data:', error);
-    showToast('Error loading teacher data', 'error');
-    hideLoadingState();
+function _renderTeacherRequestList(requests){
+  const container = document.getElementById('myRequestList');
+  if(!container) return;
+
+  const pending = requests.filter(r => r.status === 'pending' || r.status === 'approved');
+
+  if(pending.length === 0){
+    container.innerHTML = '<div class="empty-state" style="padding:1rem;text-align:center;color:var(--text3);font-size:.82rem">No active requests</div>';
+    return;
   }
-}
 
-// Update teacher statistics
-function updateTeacherStats() {
-  const stats = TEACHER_STATE.stats;
-  
-  // Update stat cards
-  updateElement('todayClasses', stats.todayClasses);
-  updateElement('weekClasses', stats.weekClasses);
-  updateElement('myCancellations', stats.cancellations);
-  updateElement('myPending', stats.pendingRequests);
-}
-
-// Load teacher's recent activity
-async function loadTeacherRecentActivity() {
-  try {
-    const activities = await APIService.getTeacherRecentActivity();
-    
-    const activityContainer = document.getElementById('teacherRecentActivity');
-    if (activityContainer) {
-      activityContainer.innerHTML = activities.map(activity => `
-        <div class="activity-item">
-          <div class="activity-dot" style="background:${activity.color}"></div>
-          <div>
-            <div class="activity-text"><strong>${activity.title}</strong></div>
-            <div class="activity-time">${activity.time}</div>
+  container.innerHTML = pending.map(r => {
+    const statusColor = r.status === 'approved' ? 'var(--teal)' : r.status === 'rejected' ? 'var(--coral)' : 'var(--amber)';
+    return `
+      <div class="req-item" style="display:flex;align-items:flex-start;gap:.75rem;padding:.75rem 0;border-bottom:1px solid #F1F5F9">
+        <div class="req-type" style="font-size:.7rem;font-weight:700;padding:.2rem .5rem;background:var(--amber-dim);color:var(--amber);border-radius:5px;white-space:nowrap">${r.type}</div>
+        <div class="req-details" style="flex:1;min-width:0">
+          <div class="req-title" style="font-weight:600;color:var(--text);font-size:.85rem">${r.course||''} ${r.section?`- ${r.section}`:''}</div>
+          <div class="req-desc" style="font-size:.78rem;color:var(--text2);margin:.2rem 0">${r.reason||r.detail||''}</div>
+          <div class="req-meta" style="font-size:.72rem;color:${statusColor};font-weight:600">
+            Status: ${r.status}
+            ${r.createdAt ? ` · ${new Date(r.createdAt).toLocaleDateString('en-PK',{month:'short',day:'numeric'})}` : ''}
           </div>
         </div>
-      `).join('');
-    }
-    
-    TEACHER_STATE.recentActivity = activities;
-  } catch (error) {
-    console.error('Error loading teacher recent activity:', error);
-  }
+        ${r.status === 'pending' ? `
+          <button class="btn btn-coral btn-sm" onclick="cancelMyRequest(${r.id})" style="font-size:.72rem;padding:.25rem .55rem;border-radius:7px">Cancel</button>
+        ` : ''}
+      </div>`;
+  }).join('');
 }
 
-// Load teacher's requests
-async function loadTeacherRequests() {
+async function cancelMyRequest(id){
   try {
-    const requests = await APIService.getTeacherRequests();
-    
-    const requestContainer = document.getElementById('myRequestList');
-    if (requestContainer) {
-      if (requests.length === 0) {
-        requestContainer.innerHTML = '<div class="empty-state">No pending requests</div>';
-      } else {
-        requestContainer.innerHTML = requests.map(request => `
-          <div class="req-item">
-            <div class="req-type">${request.type}</div>
-            <div class="req-details">
-              <div class="req-title">${request.course} - ${request.section}</div>
-              <div class="req-desc">${request.reason}</div>
-              <div class="req-meta">Status: ${request.status}</div>
-            </div>
-            <div class="req-actions">
-              ${request.status === 'pending' ? `
-                <button class="btn btn-coral btn-sm" onclick="cancelRequest(${request.id})">Cancel</button>
-              ` : ''}
-            </div>
-          </div>
-        `).join('');
-      }
-    }
-    
-    TEACHER_STATE.requests = requests;
-  } catch (error) {
-    console.error('Error loading teacher requests:', error);
+    await API.delete(`/requests/${id}`);
+    showToast('Request cancelled', 'success');
+    await loadTeacherDashboardData();
+  } catch(e){
+    showToast(e.message || 'Could not cancel request', 'error');
   }
 }
 
-// Load teacher notifications
-async function loadTeacherNotifications() {
-  try {
-    const notifications = await APIService.getTeacherNotifications();
-    TEACHER_STATE.notifications = notifications;
-  } catch (error) {
-    console.error('Error loading teacher notifications:', error);
-  }
+function _renderTeacherWeeklyChart(profile){
+  const chartEl = document.getElementById('teacherWeeklyChart');
+  if(!chartEl) return;
+
+  const myName = profile.name || '';
+  const daySlotCounts = [0,0,0,0,0];
+
+  Object.entries(timetableData || {}).forEach(([key, entry]) => {
+    if(entry.teacher !== myName) return;
+    const dayIdx = parseInt(key.split('-')[0]);
+    if(dayIdx >= 0 && dayIdx < 5) daySlotCounts[dayIdx]++;
+  });
+
+  const maxVal = Math.max(...daySlotCounts, 1);
+  chartEl.innerHTML = ['Mon','Tue','Wed','Thu','Fri'].map((d, i) => {
+    const pct = Math.round((daySlotCounts[i] / maxVal) * 90);
+    return `
+      <div class="bar-wrap" style="display:flex;flex-direction:column;align-items:center;gap:.3rem;flex:1">
+        <div class="bar" style="height:${pct || 4}%;background:var(--gold-lt);border-radius:4px 4px 0 0;min-height:4px;width:60%;transition:height .4s ease" title="${daySlotCounts[i]} classes"></div>
+        <div class="bar-label" style="font-size:.68rem;color:var(--text3)">${d}</div>
+      </div>`;
+  }).join('');
 }
 
-// Load today's schedule
-async function loadTodaySchedule() {
-  try {
-    const schedule = await APIService.getTeacherSchedule();
-    
-    const scheduleContainer = document.getElementById('teacherTodaySchedule');
-    if (scheduleContainer) {
-      if (schedule.length === 0) {
-        scheduleContainer.innerHTML = '<div class="empty-state">No classes scheduled for today</div>';
-      } else {
-        scheduleContainer.innerHTML = `
-          <tr>
-            <th>Time</th>
-            <th>Course</th>
-            <th>Room</th>
-            <th>Section</th>
-          </tr>
-          ${schedule.map(cls => `
-            <tr>
-              <td class="tt-time">${cls.time}</td>
-              <td><div class="tt-cell" style="background:${cls.color}20;border-left:3px solid ${cls.color}">${cls.course}</div></td>
-              <td>${cls.room}</td>
-              <td>${cls.section}</td>
-            </tr>
-          `).join('')}
-        `;
-      }
-    }
-    
-    TEACHER_STATE.schedule = schedule;
-  } catch (error) {
-    console.error('Error loading today\'s schedule:', error);
-  }
-}
+function _renderTeacherNotifications(requests){
+  /* Show latest request status changes as notifications */
+  const notifList = document.getElementById('teacherNotifList') || document.getElementById('notifList');
+  if(!notifList) return;
 
-// Load request history
-function loadRequestHistory() {
-  const history = [
-    {
-      type: 'makeup',
-      title: 'DS Makeup · Sec B',
-      status: 'Approved',
-      details: 'Mon Apr 14 · Room 305',
-      color: 'var(--teal)'
-    },
-    {
-      type: 'merge',
-      title: 'IP Section Merge A+C',
-      status: 'Pending',
-      details: 'Admin Review',
-      color: 'var(--amber)'
-    },
-    {
-      type: 'cancel',
-      title: 'OS Lecture Cancel · Sec A',
-      status: 'Rejected',
-      details: 'No valid alternative',
-      color: 'var(--coral)'
-    }
-  ];
-  
-  const historyContainer = document.getElementById('requestHistory');
-  if (historyContainer) {
-    historyContainer.innerHTML = history.map(item => `
-      <div class="hist-item">
-        <div style="width:6px;height:6px;border-radius:50%;background:${item.color};flex-shrink:0;margin-top:5px"></div>
+  const recent = requests.slice(0, 5);
+  if(recent.length === 0){
+    notifList.innerHTML = '<div style="padding:.75rem;text-align:center;color:var(--text3);font-size:.82rem">No notifications</div>';
+    return;
+  }
+
+  notifList.innerHTML = recent.map(r => {
+    const color = r.status === 'approved' ? 'var(--teal)' : r.status === 'rejected' ? 'var(--coral)' : 'var(--amber)';
+    const icon  = r.status === 'approved' ? '✅' : r.status === 'rejected' ? '✕' : '⏳';
+    return `
+      <div class="activity-item" style="display:flex;gap:.75rem;padding:.6rem 0;border-bottom:1px solid #F1F5F9">
+        <div class="activity-dot" style="background:${color};min-width:8px;height:8px;border-radius:50%;margin-top:.35rem"></div>
         <div>
-          <div class="hist-title">${item.title}</div>
-          <div class="hist-meta">${item.status} · ${item.details}</div>
+          <div class="activity-text" style="font-size:.82rem;color:var(--text)"><strong>${icon} ${r.type} request</strong> — ${r.course||''}</div>
+          <div class="activity-time" style="font-size:.72rem;color:var(--text3);margin-top:.15rem">Status: ${r.status}</div>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+  }).join('');
+
+  TEACHER_STATE.notifications = recent;
+}
+
+function _updateTeacherBadges(requests){
+  const pending = requests.filter(r => r.status === 'pending').length;
+  safeSet('reqCount', pending);
+  safeSet('myPending', pending);
+}
+
+/* ── Load request history panel ── */
+function loadRequestHistory(){
+  _renderTeacherRequestList(TEACHER_STATE.requests);
+}
+
+/* Populate request form dropdowns for teacher */
+function _applyReqTabVisibility(){
+  /* Hide admin-only elements for teachers */
+  if(APP.currentRole !== 'admin'){
+    document.getElementById('adminReqNote')?.classList.remove('hidden');
   }
 }
 
-// Update teacher badges
-function updateTeacherBadges() {
-  const actualPendingCount = TEACHER_STATE.requests.filter(r => r.status === 'pending').length;
-  const actualNotifCount = TEACHER_STATE.notifications.filter(n => n.unread).length;
-  const totalRequests = TEACHER_STATE.requests.length + 3; // +3 for history items
-  
-  updateElement('myReqCount', actualPendingCount);
-  updateElement('myNotifCount', actualNotifCount);
-  updateElement('myRequestCount', `${actualPendingCount} pending`);
-  updateElement('historyCount', `${totalRequests} total`);
-  
-  // Update the stats to match actual data
-  TEACHER_STATE.stats.pendingRequests = actualPendingCount;
-}
-
-// Initialize teacher charts
-function initializeTeacherCharts() {
-  // Weekly schedule chart
-  const weeklyChart = document.getElementById('teacherWeeklyChart');
-  if (weeklyChart) {
-    weeklyChart.innerHTML = generateTeacherWeeklyChartBars();
-  }
-}
-
-// Generate teacher weekly chart bars
-function generateTeacherWeeklyChartBars() {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  const classData = [50, 70, 40, 60, 30];
-  
-  return days.map((day, index) => `
-    <div class="bar-wrap">
-      <div class="bar" style="height:${classData[index]}%;background:var(--gold-lt)"></div>
-      <div class="bar-label">${day}</div>
-    </div>
-  `).join('');
-}
-
-// Teacher request submission handlers
-function submitTeacherRequest() {
-  const requestType = document.querySelector('.req-tab.active').textContent.includes('Makeup') ? 'makeup' : 
-                     document.querySelector('.req-tab.active').textContent.includes('Merge') ? 'merge' : 'cancel';
-  
-  console.log('Submitting teacher request:', requestType);
-  showToast('Request submitted successfully', 'success');
-  
-  // Reset form
-  document.querySelector('.tab-panel.active form').reset();
-  
-  // Reload requests
-  loadTeacherRequests();
-}
-
-function submitMergeRequest() {
-  console.log('Submitting merge request');
-  showToast('Section merge request submitted', 'success');
-  loadTeacherRequests();
-}
-
-function submitCancelRequest() {
-  console.log('Submitting cancel request');
-  showToast('Cancellation request submitted', 'warning');
-  loadTeacherRequests();
-}
-
-async function cancelRequest(requestId) {
-  try {
-    showLoadingState();
-    
-    await APIService.cancelTeacherRequest(requestId);
-    
-    // Remove request from pending list
-    TEACHER_STATE.requests = TEACHER_STATE.requests.filter(req => req.id !== requestId);
-    
-    // Update UI immediately
-    loadTeacherRequests();
-    updateTeacherBadges();
-    
-    showToast('Request cancelled', 'info');
-    
-    // Add to recent activity
-    addTeacherActivity({
-      type: 'cancel',
-      title: `Cancelled request - ID: ${requestId}`,
-      time: 'Just now',
-      color: 'var(--coral)'
-    });
-    
-    hideLoadingState();
-  } catch (error) {
-    console.error('Error cancelling request:', error);
-    showToast('Error cancelling request', 'error');
-    hideLoadingState();
-  }
-}
-
-// Helper function to add teacher activity
-function addTeacherActivity(activity) {
-  TEACHER_STATE.recentActivity.unshift(activity);
-  if (TEACHER_STATE.recentActivity.length > 10) {
-    TEACHER_STATE.recentActivity = TEACHER_STATE.recentActivity.slice(0, 10);
-  }
-  loadTeacherRecentActivity();
-}
-
-// Export functions
-function exportMyPDF() {
-  console.log('Exporting teacher timetable PDF...');
-  showToast('Exporting PDF...', 'info');
-  // Implement PDF export functionality
-}
-
-// Logout function
-function logout() {
-  sessionStorage.clear();
-  window.location.href = 'login.html';
-}
-
-// Loading state functions
-function showLoadingState() {
-  const loadingElements = document.querySelectorAll('.stat-value, .activity-list, .req-list');
-  loadingElements.forEach(el => {
-    el.style.opacity = '0.5';
-    el.style.pointerEvents = 'none';
-  });
-  
-  // Show loading indicator
-  const loadingIndicator = document.createElement('div');
-  loadingIndicator.id = 'globalLoading';
-  loadingIndicator.className = 'loading-indicator';
-  loadingIndicator.innerHTML = 'Loading...';
-  loadingIndicator.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: var(--teal);
-    color: white;
-    padding: 1rem 2rem;
-    border-radius: 8px;
-    font-weight: 600;
-    z-index: 9999;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  `;
-  document.body.appendChild(loadingIndicator);
-}
-
-function hideLoadingState() {
-  const loadingElements = document.querySelectorAll('.stat-value, .activity-list, .req-list');
-  loadingElements.forEach(el => {
-    el.style.opacity = '1';
-    el.style.pointerEvents = 'auto';
-  });
-  
-  // Remove loading indicator
-  const loadingIndicator = document.getElementById('globalLoading');
-  if (loadingIndicator) {
-    loadingIndicator.remove();
-  }
-}
-
-// Helper function to update elements
-function updateElement(id, value) {
-  const element = document.getElementById(id);
-  if (element) {
-    element.textContent = value;
-  }
-}
-
-// Tab switching functionality
-function switchTab(tabElement, tabId) {
-  // Remove active class from all tabs
-  document.querySelectorAll('.req-tab').forEach(tab => {
-    tab.classList.remove('active');
-  });
-  
-  // Add active class to clicked tab
-  tabElement.classList.add('active');
-  
-  // Hide all tab panels
-  document.querySelectorAll('.tab-panel').forEach(panel => {
-    panel.classList.remove('active');
-  });
-  
-  // Show selected tab panel
-  document.getElementById(tabId).classList.add('active');
-}
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-  initializeTeacherDashboard();
-});
-
-// Handle page visibility changes
-document.addEventListener('visibilitychange', function() {
-  if (!document.hidden) {
-    loadTeacherData(); // Refresh data when page becomes visible
-  }
-});
+/* ── Auto-refresh ── */
+setInterval(async () => {
+  if(APP.currentRole !== 'teacher') return;
+  const page = document.querySelector('.page.active')?.id;
+  if(page === 'dash-teacher') await loadTeacherDashboardData();
+}, 30000);
